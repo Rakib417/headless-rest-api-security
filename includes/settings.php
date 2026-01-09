@@ -6,10 +6,10 @@ add_action('admin_init', 'hras_register_settings');
 
 function hras_register_settings()
 {
-    register_setting('hras_settings_group', 'hras_enabled');
-    register_setting('hras_settings_group', 'hras_headless_redirect');
-    register_setting('hras_settings_group', 'hras_api_key');
-    register_setting('hras_settings_group', 'hras_allowed_domain');
+    register_setting('hras_settings_group', 'hras_enabled', 'intval');
+    register_setting('hras_settings_group', 'hras_headless_redirect', 'esc_url_raw');
+    register_setting('hras_settings_group', 'hras_api_key', 'sanitize_text_field');
+    register_setting('hras_settings_group', 'hras_allowed_domain', 'sanitize_text_field');
     register_setting('hras_settings_group', 'hras_whitelisted_routes');
 
     add_settings_section('hras_main_section', 'Strict Security Configuration', null, 'hras-settings');
