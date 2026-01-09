@@ -1,190 +1,95 @@
 === Headless REST API Security ===
-Contributors: rakib
-Tags: rest-api, headless, security, api-key, nextjs, react, backend, protection
+Contributors: rakib417
+Tags: security, headless, rest api, json, authentication, protection
 Requires at least: 5.8
 Tested up to: 6.4
-Stable tag: 1.1.0
+Stable tag: 2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Secure your WordPress REST APIs for headless and decoupled frontends using API keys, domain binding, and route-level control.
+The best REST API protection to secure Headless WordPress and block unauthorized data access. The essential security solution for Next.js, React, and mobile app backends.
 
 == Description ==
 
-**Headless REST API Security** is a lightweight yet powerful security plugin designed specifically for **headless WordPress architectures**.
+The best REST API protection to secure Headless WordPress and block unauthorized data access. The essential security solution for Next.js, React, and mobile app backends.
 
-When WordPress is used as a backend for frameworks like **Next.js, React, Nuxt, Vue, or mobile apps**, the REST API becomes publicly accessible. This plugin gives you **full control over who can access which API routes**, without modifying core WordPress files.
+**Headless REST API Security** locks down your WordPress REST API against scrapers and bots by adopting a strict "whitelist" model to prevent your site from exposing sensitive data. You can manage access controls and monitor your API security directly from your dashboard.
 
----
+Major features include:
 
-### 🔐 What This Plugin Does
+* **Strict Security Mode:** Automatically blocks all REST API endpoints by default to prevent unauthorized access.
+* **Headless Redirect:** Redirects visitors who land on your backend API URL directly to your main frontend domain (e.g., `api.site.com` -> `mysite.com`).
+* **Smart Whitelisting:** Easily select exactly which API routes to expose (e.g., `/wp/v2/posts`) while keeping users and settings hidden.
+* **API Key Authentication:** Requires a secure `X-API-KEY` header for external applications to access data.
+* **Admin Bypass:** Automatically detects logged-in administrators so you can continue using the WP Admin and Block Editor without interruption.
+* **Domain Binding:** Restricts API access to specific origins, ensuring only your frontend can fetch data.
 
-- Protect WordPress REST APIs using an **API key**
-- Bind API access to a **specific domain**
-- Automatically **detect all REST API routes**
-- Allow administrators to **enable/disable protection per route**
-- Enable or disable security globally with one click
-- Works with **GET, POST, PUT, DELETE** requests
-- Compatible with WordPress core APIs and popular plugins
+PS: You'll be able to generate your secure API Key instantly upon activation.
 
----
+== Installation ==
 
-### ❓ Why You Need This Plugin
+1. Upload the `headless-rest-api-security` folder to the `/wp-content/plugins/` directory.
+2. Activate the plugin through the 'Plugins' menu in WordPress.
+3. Go to the **Headless Security** menu in your dashboard sidebar.
+4. Enable "Master Switch" to turn on Strict Mode.
+5. Set your "Headless Frontend URL" to enable redirects.
 
-By default, WordPress REST APIs are **public**.
+== Configuration ==
 
-This can lead to:
-- Unauthorized data scraping
-- Exposure of unpublished or sensitive data
-- Abuse of custom APIs
-- Security risks in headless projects
+**1. Headless Redirect (New)**
+Enter your frontend URL (e.g., `https://www.mysite.com`) in the "Headless Frontend URL" field.
+* Visitors to your API site will now be redirected there.
+* `/wp-admin` and `/wp-json` requests are excluded from redirection.
 
-This plugin solves those problems by adding a **controlled authentication layer** that is:
-- Simple
-- Fast
-- Developer-friendly
-- WordPress-native
+**2. Whitelisting Routes**
+Check the "ALLOW" box next to any route you want to make public (to your frontend).
+* **Note:** You must enable the "Master Switch" for the blocking to take effect.
 
----
+**3. Setting up the API Key**
+Copy the API Key generated in the settings page. Add it to your frontend requests header:
+`X-API-KEY: your_secret_key_here`
 
-### ⚙️ How It Works
+== Frequently Asked Questions ==
 
-1. The plugin automatically reads all registered REST API routes.
-2. You select which routes should be protected from the admin dashboard.
-3. The frontend sends an API key via request headers.
-4. The plugin validates:
-   - API key
-   - Request origin domain
-   - Requested route
-5. Unauthorized requests are blocked with a **403 error**.
+= Does this plugin replace WordPress authentication? =
+No. It adds a security firewall layer *before* WordPress processes the request. It works alongside existing auth methods (like JWT or Cookies).
 
-All checks happen **before WordPress processes the request**, ensuring minimal performance impact.
+= Will this break the Block Editor (Gutenberg)? =
+No. The plugin includes an "Admin Bypass" feature. If you are logged in as an Administrator or Editor, the API restrictions are skipped so you can work normally.
 
----
+= Can I use this with RankMath, WooCommerce, or CF7? =
+Yes. The plugin automatically detects routes registered by other plugins. You can see them in the list and whitelist them (e.g., `/wc/v3` or `/contact-form-7/v1`).
 
-### 🧪 Real-World Use Cases (Case Studies)
-
-#### Case 1: Headless Blog with Next.js
-A news website uses WordPress as backend and Next.js as frontend.
-Only `/wp/v2/posts` and `/wp/v2/categories` APIs are exposed.
-All other APIs remain protected.
-
-✅ Prevents data scraping  
-✅ Secures backend APIs  
-✅ Clean separation of frontend & backend  
-
----
-
-#### Case 2: Mobile App Backend
-A mobile application consumes WordPress REST APIs.
-API access is restricted to the mobile app’s domain and API key.
-
-✅ Prevents unauthorized third-party usage  
-✅ Protects write APIs  
-✅ Safer mobile data access  
-
----
-
-#### Case 3: Internal Admin Tools
-Custom dashboards built using React access WordPress APIs.
-Only internal APIs are allowed, others are blocked.
-
-✅ Internal data safety  
-✅ Fine-grained API access  
-✅ No custom authentication code needed  
-
----
-
-### 📌 Scenarios Covered
-
-- Headless WordPress websites
-- Decoupled frontends (React / Next.js / Vue)
-- Mobile applications
-- Private REST APIs
-- Multi-frontend environments
-- API abuse prevention
-
----
-
-### 🧩 Key Features
-
-- Editable API key
-- Domain-based access control
-- Auto-discovered REST routes
-- Route-level access toggle
-- Global enable/disable switch
-- No core file modification
-- Clean and lightweight
-
----
-
-### 🔒 Security Philosophy
-
-This plugin:
-- Uses WordPress native hooks
-- Avoids custom database tables
-- Follows WordPress coding standards
-- Respects plugin review guidelines
-
----
-
-### 📦 Installation
-
-1. Upload the plugin folder to `/wp-content/plugins/`
-2. Activate the plugin from the WordPress admin panel
-3. Go to **API Security** in the dashboard
-4. Configure API key, domain, and allowed routes
-
----
-
-### 🛠️ Frequently Asked Questions
-
-**Does this plugin replace WordPress authentication?**  
-No. It adds an extra security layer for REST APIs.
-
-**Will this slow down my site?**  
-No. The checks are lightweight and run before request processing.
-
-**Can I use this with custom REST APIs?**  
-Yes. All registered REST routes are automatically detected.
-
-**Is it compatible with Rank Math or other plugins?**  
-Yes, any plugin that registers REST APIs is supported.
-
----
-
-### 🧾 Changelog
-
-**1.1.0**
-- Added dynamic REST route detection
-- Added route-level access control
-- Editable API key
-- Domain binding support
-
----
-
-### 👨‍💻 Developer Notes
-
-This plugin is designed for developers building **secure headless WordPress backends** without rewriting authentication logic.
-
----
-
-### ❤️ Credits
-
-Developed by Rakib  
-Email: rakib417@gmail.com
-
----
+= What happens if I lose my API Key? =
+You can view or generate a new key anytime from the settings page.
 
 == Screenshots ==
 
-1. API Security settings dashboard
-2. REST API route list with toggle options
-3. API key and domain binding configuration
+1. **Dashboard:** The main settings interface with the Master Switch and Redirect options.
+2. **Whitelist Grid:** The smart list of API routes allowing you to toggle access.
 
----
+== Changelog ==
+
+= 2.0 =
+* **New:** Added Headless Redirect to main domain function.
+* **New:** Introduced Strict Security (Whitelist) mode.
+* **New:** Added Smart Grouping for cleaner route management.
+* **Improvement:** Added Admin Bypass for logged-in users.
+
+= 1.1.0 =
+* Added dynamic REST route detection.
+* Added route-level access control.
+* Editable API key.
+* Domain binding support.
+
+= 1.0.0 =
+* Initial Release.
 
 == Upgrade Notice ==
 
-**1.1.0**
-Improved REST API control and enhanced security options.
+= 2.0 =
+Major update introducing Strict Whitelist Mode and Headless Redirects. Please review your allowed routes after upgrading.
+
+== Contact ==
+Author: Md. Rakib Ullah
+Email: rakib417@gmail.com

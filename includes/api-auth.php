@@ -6,11 +6,10 @@ add_filter('rest_pre_dispatch', 'hras_strict_api_guard', 10, 3);
 
 function hras_strict_api_guard($result, $server, $request)
 {
-
     if (!get_option('hras_enabled'))
         return $result;
 
-    // ✅ Allow Admin Dashboard (Logged in users)
+    // ✅ Admin Bypass (Logged-in users)
     if (is_user_logged_in() && current_user_can('edit_posts')) {
         return $result;
     }
@@ -18,57 +17,39 @@ function hras_strict_api_guard($result, $server, $request)
     $current_route = $request->get_route();
     $current_method = $request->get_method();
     $allowed_rules = get_option('hras_whitelisted_routes', []);
-
     $is_allowed = false;
 
-    // 🔍 CHECK: Exact Match OR Parent Match
-    // If you allowed "/rankmath/v1", this loop checks if the current request starts with it.
+    // 🔍 Check Whitelist (Prefix Match)
     if (isset($allowed_rules[$current_route][$current_method])) {
         $is_allowed = true;
     } else {
         foreach ($allowed_rules as $base_route => $methods) {
-            // Check if current route starts with the allowed base
-            // e.g. Base: "/rankmath/v1" matches "/rankmath/v1/head"
-            if (strpos($current_route, $base_route) === 0) {
-                if (isset($methods[$current_method])) {
-                    $is_allowed = true;
-                    break;
-                }
+            if (strpos($current_route, $base_route) === 0 && isset($methods[$current_method])) {
+                $is_allowed = true;
+                break;
             }
         }
     }
 
     if (!$is_allowed) {
-        return new WP_Error(
-            'rest_forbidden_strict',
-            'Access Denied. This API route is disabled.',
-            ['status' => 403]
-        );
+        return new WP_Error('rest_forbidden_strict', 'Access Denied. API disabled.', ['status' => 403]);
     }
 
-    // --- CHECK API KEY ---
+    // 🔑 Check API Key
     $server_key = get_option('hras_api_key');
     $client_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
-
     if (empty($client_key) || !hash_equals($server_key, $client_key)) {
         return new WP_Error('rest_forbidden_key', 'Invalid API Key.', ['status' => 401]);
     }
 
-    // --- CHECK DOMAIN ---
+    // 🌐 Check Domain
     $allowed_domain = get_option('hras_allowed_domain');
     if (!empty($allowed_domain)) {
         $allowed_domain = trim($allowed_domain);
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-        $referer = $_SERVER['HTTP_REFERER'] ?? '';
-
-        $match = false;
-        if (!empty($origin) && strpos($origin, $allowed_domain) !== false)
-            $match = true;
-        elseif (!empty($referer) && strpos($referer, $allowed_domain) !== false)
-            $match = true;
-
-        if (!$match)
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
+        if (strpos($origin, $allowed_domain) === false) {
             return new WP_Error('rest_forbidden_domain', 'Domain unauthorized.', ['status' => 403]);
+        }
     }
 
     return $result;
