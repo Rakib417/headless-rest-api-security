@@ -9,7 +9,6 @@ function hras_strict_api_guard($result, $server, $request)
     if (!get_option('hras_enabled'))
         return $result;
 
-    // ✅ Admin Bypass (Logged-in users)
     if (is_user_logged_in() && current_user_can('edit_posts')) {
         return $result;
     }
@@ -19,7 +18,6 @@ function hras_strict_api_guard($result, $server, $request)
     $allowed_rules = get_option('hras_whitelisted_routes', []);
     $is_allowed = false;
 
-    // 🔍 Check Whitelist (Prefix Match)
     if (isset($allowed_rules[$current_route][$current_method])) {
         $is_allowed = true;
     } else {
@@ -35,14 +33,12 @@ function hras_strict_api_guard($result, $server, $request)
         return new WP_Error('rest_forbidden_strict', 'Access Denied. API disabled.', ['status' => 403]);
     }
 
-    // 🔑 Check API Key
     $server_key = get_option('hras_api_key');
     $client_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
     if (empty($client_key) || !hash_equals($server_key, $client_key)) {
         return new WP_Error('rest_forbidden_key', 'Invalid API Key.', ['status' => 401]);
     }
 
-    // 🌐 Check Domain
     $allowed_domain = get_option('hras_allowed_domain');
     if (!empty($allowed_domain)) {
         $allowed_domain = trim($allowed_domain);

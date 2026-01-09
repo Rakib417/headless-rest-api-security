@@ -1,5 +1,5 @@
 === Headless REST API Security ===
-Contributors: rakib417
+Contributors: Md. Rakib Ullah
 Tags: security, headless, rest api, json, authentication, protection
 Requires at least: 5.8
 Tested up to: 6.4
@@ -93,3 +93,4 @@ Major update introducing Strict Whitelist Mode and Headless Redirects. Please re
 == Contact ==
 Author: Md. Rakib Ullah
 Email: rakib417@gmail.com
+Linkedin: https://www.linkedin.com/in/rakib417/

@@ -7,15 +7,15 @@ add_action('admin_init', 'hras_register_settings');
 function hras_register_settings()
 {
     register_setting('hras_settings_group', 'hras_enabled');
+    register_setting('hras_settings_group', 'hras_headless_redirect');
     register_setting('hras_settings_group', 'hras_api_key');
     register_setting('hras_settings_group', 'hras_allowed_domain');
-    register_setting('hras_settings_group', 'hras_headless_redirect'); // 🆕 NEW FIELD
     register_setting('hras_settings_group', 'hras_whitelisted_routes');
 
     add_settings_section('hras_main_section', 'Strict Security Configuration', null, 'hras-settings');
 
     add_settings_field('hras_enabled', 'Master Switch', 'hras_enabled_cb', 'hras-settings', 'hras_main_section');
-    add_settings_field('hras_headless_redirect', 'Headless Frontend URL', 'hras_redirect_cb', 'hras-settings', 'hras_main_section'); // 🆕
+    add_settings_field('hras_headless_redirect', 'Headless Frontend URL', 'hras_redirect_cb', 'hras-settings', 'hras_main_section');
     add_settings_field('hras_api_key', 'API Key', 'hras_api_key_cb', 'hras-settings', 'hras_main_section');
     add_settings_field('hras_allowed_domain', 'Allowed Domain', 'hras_domain_cb', 'hras-settings', 'hras_main_section');
     add_settings_field('hras_whitelisted_routes', 'Whitelist Rules', 'hras_routes_grid_cb', 'hras-settings', 'hras_main_section');
@@ -29,12 +29,11 @@ function hras_enabled_cb()
     echo '<label><input type="checkbox" name="hras_enabled" value="1" ' . checked(1, $val, false) . '> <strong>Enable Strict Security</strong> (Blocks ALL APIs by default)</label>';
 }
 
-// 🆕 NEW CALLBACK FOR REDIRECT
 function hras_redirect_cb()
 {
     $val = get_option('hras_headless_redirect');
     echo '<input type="url" name="hras_headless_redirect" value="' . esc_attr($val) . '" class="regular-text" placeholder="e.g. https://www.mysite.com">';
-    echo '<p class="description"><strong>Headless Mode:</strong> If set, visitors to this site will be redirected to this URL.<br>Admin Dashboard and API endpoints remain accessible.</p>';
+    echo '<p class="description">Visitors to this API domain will be redirected here.</p>';
 }
 
 function hras_api_key_cb()
@@ -43,7 +42,7 @@ function hras_api_key_cb()
     if (empty($key))
         $key = wp_generate_password(32, false);
     echo '<input type="text" name="hras_api_key" value="' . esc_attr($key) . '" class="regular-text">';
-    echo '<p class="description">This Key is required for any "Allowed" API below.</p>';
+    echo '<p class="description">Required header: <code>X-API-KEY</code></p>';
 }
 
 function hras_domain_cb()
@@ -52,7 +51,7 @@ function hras_domain_cb()
     echo '<input type="text" name="hras_allowed_domain" value="' . esc_attr($val) . '" class="regular-text" placeholder="e.g. https://www.mysite.com">';
 }
 
-/* 🌟 GRID UI (SAME AS BEFORE) 🌟 */
+/* 🌟 GRID UI WITH SMART SORTING 🌟 */
 function hras_routes_grid_cb()
 {
     if (!did_action('rest_api_init')) {
@@ -64,23 +63,57 @@ function hras_routes_grid_cb()
     $saved_rules = get_option('hras_whitelisted_routes', []);
     $http_methods = ['GET', 'POST', 'PUT', 'DELETE'];
 
-    // Smart Grouping Logic
+    // 1. Consolidate Routes
     $display_routes = [];
     foreach ($all_routes as $route) {
         if ($route === '/')
             continue;
         $parts = explode('/', trim($route, '/'));
+
+        // Group WP Core specifically
         $is_core = ($parts[0] === 'wp' && $parts[1] === 'v2');
+
         if ($is_core) {
             $clean_key = '/' . $parts[0] . '/' . $parts[1] . '/' . ($parts[2] ?? '');
         } else {
             $clean_key = '/' . $parts[0] . '/' . ($parts[1] ?? '');
         }
+
         if (strpos($clean_key, '(?P<') !== false)
             continue;
         $display_routes[$clean_key] = true;
     }
-    ksort($display_routes);
+
+    // 2. Custom Sorting (Core Top, Plugins Bottom)
+    uksort($display_routes, function ($a, $b) {
+        $priority_map = [
+            '/wp/v2/posts' => 10,
+            '/wp/v2/pages' => 20,
+            '/wp/v2/media' => 30,
+            '/wp/v2/users' => 40,
+            '/wp/v2/comments' => 50,
+            '/wp/v2/categories' => 60,
+            '/wp/v2/tags' => 70,
+            '/wp/v2' => 80,
+            '/' => 999
+        ];
+
+        $get_score = function ($route) use ($priority_map) {
+            foreach ($priority_map as $key => $score) {
+                if (strpos($route, $key) === 0)
+                    return $score;
+            }
+            return 999;
+        };
+
+        $score_a = $get_score($a);
+        $score_b = $get_score($b);
+
+        if ($score_a !== $score_b) {
+            return $score_a - $score_b;
+        }
+        return strcmp($a, $b);
+    });
 
     ?>
     <style>
@@ -104,8 +137,6 @@ function hras_routes_grid_cb()
             padding: 12px;
             text-align: center;
             border-bottom: 2px solid #c3c4c7;
-            font-size: 11px;
-            text-transform: uppercase;
         }
 
         .hras-table td {
@@ -139,6 +170,18 @@ function hras_routes_grid_cb()
             opacity: 0.3;
             cursor: not-allowed;
         }
+
+        tr[data-type="plugin"] td.route-name {
+            border-left: 4px solid #0073aa;
+        }
+
+        tr[data-type="core"] td.route-name {
+            border-left: 4px solid #d63638;
+        }
+
+        tr.active-row[data-type="core"] td.route-name {
+            border-left-color: #00a32a;
+        }
     </style>
 
     <div class="hras-table-wrapper">
@@ -157,8 +200,9 @@ function hras_routes_grid_cb()
                     $row_id = md5($route);
                     $is_row_active = !empty($saved_rules[$route]);
                     $row_class = $is_row_active ? 'hras-row active-row' : 'hras-row';
+                    $row_type = (strpos($route, '/wp/v2') === 0) ? 'core' : 'plugin';
                     ?>
-                    <tr class="<?php echo $row_class; ?>" id="row-<?php echo $row_id; ?>">
+                    <tr class="<?php echo $row_class; ?>" id="row-<?php echo $row_id; ?>" data-type="<?php echo $row_type; ?>">
                         <td class="route-name"><?php echo esc_html($route); ?></td>
                         <td class="enable-col"><input type="checkbox" class="row-master-toggle" <?php checked($is_row_active, true); ?>></td>
                         <?php foreach ($http_methods as $method):
@@ -174,7 +218,6 @@ function hras_routes_grid_cb()
             </tbody>
         </table>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const rows = document.querySelectorAll('.hras-row');

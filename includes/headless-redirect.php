@@ -12,12 +12,10 @@ function hras_trigger_headless_redirect()
 
     $frontend_url = untrailingslashit($frontend_url);
 
-    // Ignore Admin, Login, API
     if (is_admin() || strpos($_SERVER['REQUEST_URI'], '/wp-json') !== false || strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
         return;
     }
 
-    // Redirect
     $final_destination = $frontend_url . $_SERVER['REQUEST_URI'];
     wp_redirect($final_destination, 301);
     exit;

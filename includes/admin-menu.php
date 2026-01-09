@@ -8,7 +8,7 @@ function hras_add_admin_menu()
 {
     add_menu_page(
         'Headless REST API Security', // Page Title
-        'Headless API Security',      // Sidebar Menu Title
+        'Headless API Security',          // Sidebar Menu Name
         'manage_options',             // Capability
         'hras-settings',              // SLUG
         'hras_render_admin_page',     // Callback
