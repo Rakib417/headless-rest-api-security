@@ -1,8 +1,8 @@
 === Headless REST API Security ===
 Contributors: rakib417
-Tags: security, headless, rest api, json, authentication, protection
+Tags: headless, rest api, security, authentication
 Requires at least: 5.8
-Tested up to: 6.7
+Tested up to: 6.9
 Stable tag: 2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html

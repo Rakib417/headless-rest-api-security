@@ -1,70 +1,101 @@
 <?php
-if (!defined('ABSPATH'))
+if (!defined('ABSPATH')) {
     exit;
+}
 
-add_filter('rest_pre_dispatch', 'hras_strict_api_guard', 0, 3); // Priority 0 to run before other plugins
-add_filter('xmlrpc_enabled', '__return_false'); // Disable XML-RPC
-add_filter('rest_jsonp_enabled', '__return_false'); // Disable JSONP
+add_filter('rest_authentication_errors', 'hras_restrict_rest_api', 99);
 
-function hras_strict_api_guard($result, $server, $request)
+function hras_restrict_rest_api($result)
 {
-    if (!get_option('hras_enabled'))
-        return $result;
-
-    if (is_user_logged_in() && current_user_can('edit_posts')) {
+    // 1. If there is already an error, pass it through.
+    if (is_wp_error($result)) {
         return $result;
     }
 
-    $current_route = $request->get_route();
-    $current_method = $request->get_method();
-    $allowed_rules = get_option('hras_whitelisted_routes', []);
-    $is_allowed = false;
+    // 2. Check if Master Switch is ON
+    if (!get_option('hras_enabled')) {
+        return $result;
+    }
 
-    if (isset($allowed_rules[$current_route][$current_method])) {
-        $is_allowed = true;
-    } else {
-        foreach ($allowed_rules as $base_route => $methods) {
-            // Ensure exact match or sub-path (e.g. /wp/v2/users matching /wp/v2/users/1)
-            // but NOT /wp/v2/users-secret
-            if (isset($methods[$current_method])) {
-                if ($current_route === $base_route || strpos($current_route, $base_route . '/') === 0) {
-                    $is_allowed = true;
-                    break;
+    // 3. Admin Bypass: Allow logged-in admins/editors to use the API
+    if (is_user_logged_in() && (current_user_can('manage_options') || current_user_can('edit_posts'))) {
+        return $result;
+    }
+
+    // --- STEP A: VALIDATE API KEY / DOMAIN FIRST ---
+
+    $is_authenticated = false;
+
+    // Check 1: API Key
+    $received_key = isset($_SERVER['HTTP_X_API_KEY']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_X_API_KEY'])) : '';
+    $saved_key = get_option('hras_api_key');
+
+    if (!empty($saved_key) && hash_equals($saved_key, $received_key)) {
+        $is_authenticated = true;
+    }
+
+    // Check 2: Domain (Alternative to Key)
+    if (!$is_authenticated) {
+        $allowed_domain = get_option('hras_allowed_domain');
+        if (!empty($allowed_domain)) {
+            $origin = isset($_SERVER['HTTP_ORIGIN']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_ORIGIN'])) : '';
+            if (empty($origin) && isset($_SERVER['HTTP_REFERER'])) {
+                $origin = sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER']));
+            }
+            if (!empty($origin)) {
+                $origin_host = wp_parse_url($origin, PHP_URL_HOST);
+                $allowed_host = wp_parse_url($allowed_domain, PHP_URL_HOST);
+                if ($origin_host === $allowed_host) {
+                    $is_authenticated = true;
                 }
             }
         }
     }
 
-    if (!$is_allowed) {
-        return new WP_Error('rest_forbidden_strict', 'Access Denied. API disabled.', ['status' => 403]);
+    // If NO valid Key and NO valid Domain -> BLOCK EVERYTHING
+    if (!$is_authenticated) {
+        return new WP_Error(
+            'rest_forbidden',
+            __('REST API Restricted: Valid API Key or Allowed Domain required.', 'headless-rest-api-security'),
+            array('status' => 401)
+        );
     }
 
-    $server_key = (string) get_option('hras_api_key');
-    $client_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
-    if (empty($client_key) || !hash_equals($server_key, $client_key)) {
-        return new WP_Error('rest_forbidden_key', 'Invalid API Key.', ['status' => 401]);
+    // --- STEP B: CHECK WHITELIST (SCOPE) ---
+    // If we are here, the user has a valid Key. Now we check if they are allowed to see THIS route.
+
+    // 1. Get Current Route
+    $server_uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+    $current_route = empty($GLOBALS['wp']->query_vars['rest_route']) ? $server_uri : $GLOBALS['wp']->query_vars['rest_route'];
+    $current_route = '/' . ltrim($current_route, '/');
+
+    // 2. Get Request Method (GET, POST, etc.)
+    $method = isset($_SERVER['REQUEST_METHOD']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_METHOD'])) : 'GET';
+    $method = strtoupper($method);
+
+    // 3. Check against Saved Rules
+    $whitelisted_routes = get_option('hras_whitelisted_routes', array());
+    $is_route_allowed = false;
+
+    foreach ($whitelisted_routes as $route => $methods) {
+        // Does the requested URL start with this whitelisted route? (e.g., /wp/v2/posts)
+        if (strpos($current_route, $route) === 0) {
+            // Is the HTTP Method allowed? (e.g., GET)
+            if (!empty($methods[$method])) {
+                $is_route_allowed = true;
+                break;
+            }
+        }
     }
 
-    $allowed_domain = get_option('hras_allowed_domain');
-    if (!empty($allowed_domain)) {
-
-        // Ensure scheme exists for parse_url
-        if (strpos($allowed_domain, 'http') !== 0) {
-            $allowed_domain = 'https://' . $allowed_domain;
-        }
-
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-        if (empty($origin)) {
-            return new WP_Error('rest_forbidden_domain', 'Domain unauthorized (No Origin).', ['status' => 403]);
-        }
-
-        $allowed_host = parse_url($allowed_domain, PHP_URL_HOST);
-        $origin_host = parse_url($origin, PHP_URL_HOST);
-
-        if (!$allowed_host || !$origin_host || strcasecmp($allowed_host, $origin_host) !== 0) {
-            return new WP_Error('rest_forbidden_domain', 'Domain unauthorized.', ['status' => 403]);
-        }
+    if ($is_route_allowed) {
+        return $result; // ✅ Key is valid AND Route is in Whitelist -> ALLOW
     }
 
-    return $result;
+    // If Key is valid but Route is NOT checked in settings -> BLOCK
+    return new WP_Error(
+        'rest_forbidden',
+        __('REST API Scope Error: This route is not whitelisted in settings.', 'headless-rest-api-security'),
+        array('status' => 403)
+    );
 }

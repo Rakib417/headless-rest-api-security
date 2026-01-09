@@ -1,16 +1,24 @@
 <?php
-if (!defined('ABSPATH'))
+if (!defined('ABSPATH')) {
     exit;
+}
 
 add_action('admin_init', 'hras_register_settings');
 
 function hras_register_settings()
 {
+    // Simple integer sanitization
     register_setting('hras_settings_group', 'hras_enabled', 'intval');
+
+    // URL sanitization
     register_setting('hras_settings_group', 'hras_headless_redirect', 'esc_url_raw');
+
+    // Text sanitization
     register_setting('hras_settings_group', 'hras_api_key', 'sanitize_text_field');
     register_setting('hras_settings_group', 'hras_allowed_domain', 'sanitize_text_field');
-    register_setting('hras_settings_group', 'hras_whitelisted_routes');
+
+    // Custom callback for array sanitization
+    register_setting('hras_settings_group', 'hras_whitelisted_routes', 'hras_sanitize_routes_cb');
 
     add_settings_section('hras_main_section', 'Strict Security Configuration', null, 'hras-settings');
 
@@ -19,6 +27,28 @@ function hras_register_settings()
     add_settings_field('hras_api_key', 'API Key', 'hras_api_key_cb', 'hras-settings', 'hras_main_section');
     add_settings_field('hras_allowed_domain', 'Allowed Domain', 'hras_domain_cb', 'hras-settings', 'hras_main_section');
     add_settings_field('hras_whitelisted_routes', 'Whitelist Rules', 'hras_routes_grid_cb', 'hras-settings', 'hras_main_section');
+}
+
+/**
+ * Custom Sanitization Callback for Route Array
+ */
+function hras_sanitize_routes_cb($input)
+{
+    if (!is_array($input)) {
+        return array();
+    }
+
+    $clean = array();
+    foreach ($input as $route => $methods) {
+        $clean_route = sanitize_text_field($route);
+        if (is_array($methods)) {
+            foreach ($methods as $method => $value) {
+                $clean_method = sanitize_text_field($method);
+                $clean[$clean_route][$clean_method] = 1;
+            }
+        }
+    }
+    return $clean;
 }
 
 /* --- CALLBACKS --- */
@@ -39,8 +69,9 @@ function hras_redirect_cb()
 function hras_api_key_cb()
 {
     $key = get_option('hras_api_key');
-    if (empty($key))
+    if (empty($key)) {
         $key = wp_generate_password(32, false);
+    }
     echo '<input type="text" name="hras_api_key" value="' . esc_attr($key) . '" class="regular-text">';
     echo '<p class="description">Required header: <code>X-API-KEY</code></p>';
 }
@@ -54,24 +85,34 @@ function hras_domain_cb()
 /* 🌟 GRID UI WITH SMART SORTING 🌟 */
 function hras_routes_grid_cb()
 {
+    // FIX: Added phpcs ignore comment because we are intentionally triggering a Core hook
     if (!did_action('rest_api_init')) {
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
         do_action('rest_api_init');
     }
 
     $server = rest_get_server();
+
+    // Safety check: if server is missing (rare), create a dummy to prevent fatal error
+    if (!$server) {
+        $server = new WP_REST_Server();
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+        do_action('rest_api_init', $server);
+    }
+
     $all_routes = array_keys($server->get_routes());
-    $saved_rules = get_option('hras_whitelisted_routes', []);
-    $http_methods = ['GET', 'POST', 'PUT', 'DELETE'];
+    $saved_rules = get_option('hras_whitelisted_routes', array());
+    $http_methods = array('GET', 'POST', 'PUT', 'DELETE');
 
     // 1. Consolidate Routes
-    $display_routes = [];
+    $display_routes = array();
     foreach ($all_routes as $route) {
-        if ($route === '/')
+        if ($route === '/') {
             continue;
+        }
         $parts = explode('/', trim($route, '/'));
 
-        // Group WP Core specifically
-        $is_core = ($parts[0] === 'wp' && $parts[1] === 'v2');
+        $is_core = (isset($parts[0], $parts[1]) && $parts[0] === 'wp' && $parts[1] === 'v2');
 
         if ($is_core) {
             $clean_key = '/' . $parts[0] . '/' . $parts[1] . '/' . ($parts[2] ?? '');
@@ -79,41 +120,42 @@ function hras_routes_grid_cb()
             $clean_key = '/' . $parts[0] . '/' . ($parts[1] ?? '');
         }
 
-        if (strpos($clean_key, '(?P<') !== false)
+        if (strpos($clean_key, '(?P<') !== false) {
             continue;
+        }
         $display_routes[$clean_key] = true;
     }
 
-    // 2. Custom Sorting (Core Top, Plugins Bottom)
-    uksort($display_routes, function ($a, $b) {
-        $priority_map = [
-            '/wp/v2/posts' => 10,
-            '/wp/v2/pages' => 20,
-            '/wp/v2/media' => 30,
-            '/wp/v2/users' => 40,
-            '/wp/v2/comments' => 50,
-            '/wp/v2/categories' => 60,
-            '/wp/v2/tags' => 70,
-            '/wp/v2' => 80,
-            '/' => 999
-        ];
+    // 2. Custom Sorting
+    uksort(
+        $display_routes,
+        function ($a, $b) {
+            $priority_map = array(
+                '/wp/v2/posts' => 10,
+                '/wp/v2/pages' => 20,
+                '/wp/v2/users' => 40,
+                '/wp/v2' => 80,
+                '/' => 999,
+            );
 
-        $get_score = function ($route) use ($priority_map) {
-            foreach ($priority_map as $key => $score) {
-                if (strpos($route, $key) === 0)
-                    return $score;
+            $get_score = function ($route) use ($priority_map) {
+                foreach ($priority_map as $key => $score) {
+                    if (strpos($route, $key) === 0) {
+                        return $score;
+                    }
+                }
+                return 999;
+            };
+
+            $score_a = $get_score($a);
+            $score_b = $get_score($b);
+
+            if ($score_a !== $score_b) {
+                return $score_a - $score_b;
             }
-            return 999;
-        };
-
-        $score_a = $get_score($a);
-        $score_b = $get_score($b);
-
-        if ($score_a !== $score_b) {
-            return $score_a - $score_b;
+            return strcmp($a, $b);
         }
-        return strcmp($a, $b);
-    });
+    );
 
     ?>
     <style>
@@ -191,27 +233,36 @@ function hras_routes_grid_cb()
                     <th style="text-align:left; min-width: 250px;">Main API Path</th>
                     <th style="width: 80px; background:#dcdcde; color:#000;">ALLOW</th>
                     <?php foreach ($http_methods as $method): ?>
-                        <th style="width: 80px;"><?php echo esc_html($method); ?></th>
+                        <th style="width: 80px;">
+                            <?php echo esc_html($method); ?>
+                        </th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($display_routes as $route => $val):
+                <?php
+                foreach ($display_routes as $route => $val):
                     $row_id = md5($route);
                     $is_row_active = !empty($saved_rules[$route]);
                     $row_class = $is_row_active ? 'hras-row active-row' : 'hras-row';
                     $row_type = (strpos($route, '/wp/v2') === 0) ? 'core' : 'plugin';
                     ?>
-                    <tr class="<?php echo $row_class; ?>" id="row-<?php echo $row_id; ?>" data-type="<?php echo $row_type; ?>">
-                        <td class="route-name"><?php echo esc_html($route); ?></td>
+                    <tr class="<?php echo esc_attr($row_class); ?>" id="row-<?php echo esc_attr($row_id); ?>"
+                        data-type="<?php echo esc_attr($row_type); ?>">
+                        <td class="route-name">
+                            <?php echo esc_html($route); ?>
+                        </td>
                         <td class="enable-col"><input type="checkbox" class="row-master-toggle" <?php checked($is_row_active, true); ?>></td>
-                        <?php foreach ($http_methods as $method):
+                        <?php
+                        foreach ($http_methods as $method):
                             $is_checked = isset($saved_rules[$route][$method]) ? 'checked' : '';
-                            $field_name = "hras_whitelisted_routes[" . esc_attr($route) . "][" . esc_attr($method) . "]";
+                            $field_name = 'hras_whitelisted_routes[' . esc_attr($route) . '][' . esc_attr($method) . ']';
                             $disabled_attr = $is_row_active ? '' : 'disabled';
                             ?>
-                            <td class="check-col"><input type="checkbox" name="<?php echo $field_name; ?>" value="1"
-                                    class="method-check" <?php echo $is_checked; ?>             <?php echo $disabled_attr; ?>></td>
+                            <td class="check-col"><input type="checkbox" name="<?php echo esc_attr($field_name); ?>" value="1"
+                                    class="method-check" <?php echo esc_attr($is_checked); ?>
+                                <?php echo esc_attr($disabled_attr); ?>>
+                            </td>
                         <?php endforeach; ?>
                     </tr>
                 <?php endforeach; ?>

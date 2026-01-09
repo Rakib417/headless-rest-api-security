@@ -2,7 +2,7 @@
 /*
 Plugin Name: Headless REST API Security
 Plugin URI: https://wordpress.org/plugins/headless-rest-api-security/
-Description: Strict Whitelist Security & Headless Redirects for WordPress.
+Description: Security Solution for Headless WordPress. Lock down your REST API, block scrapers, and secure your Next.js/React backend with one click.
 Version: 2.0
 Author: Md. Rakib Ullah
 Author URI: https://www.linkedin.com/in/rakib417/
