@@ -1,30 +1,75 @@
 === Headless REST API Security ===
-Contributors: Md. Rakib Ullah
+Contributors: rakib417
 Tags: security, headless, rest api, json, authentication, protection
 Requires at least: 5.8
-Tested up to: 6.4
+Tested up to: 6.7
 Stable tag: 2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-The best REST API protection to secure Headless WordPress and block unauthorized data access. The essential security solution for Next.js, React, and mobile app backends.
+The #1 Security Solution for Headless WordPress. Lock down your REST API, block scrapers, and secure your Next.js/React backend with one click.
 
 == Description ==
 
-The best REST API protection to secure Headless WordPress and block unauthorized data access. The essential security solution for Next.js, React, and mobile app backends.
+**Headless REST API Security is the "Swiss Army Knife" of API protection for WordPress.**
 
-**Headless REST API Security** locks down your WordPress REST API against scrapers and bots by adopting a strict "whitelist" model to prevent your site from exposing sensitive data. You can manage access controls and monitor your API security directly from your dashboard.
+If you are running a Headless WordPress site (Next.js, Gatsby, Nuxt, or Mobile App), your REST API is **exposed to the public** by default. This leaves your data vulnerable to scrapers, bots, and unauthorized users.
 
-Major features include:
+**Headless REST API Security** solves this instantly. It is the **FIRST** and **ONLY** plugin designed specifically to lock down Headless architectures with a "Strict Whitelist" model. We give you the power to disable ALL API routes by default and only allow exactly what your app needs.
 
-* **Strict Security Mode:** Automatically blocks all REST API endpoints by default to prevent unauthorized access.
-* **Headless Redirect:** Redirects visitors who land on your backend API URL directly to your main frontend domain (e.g., `api.site.com` -> `mysite.com`).
-* **Smart Whitelisting:** Easily select exactly which API routes to expose (e.g., `/wp/v2/posts`) while keeping users and settings hidden.
-* **API Key Authentication:** Requires a secure `X-API-KEY` header for external applications to access data.
-* **Admin Bypass:** Automatically detects logged-in administrators so you can continue using the WP Admin and Block Editor without interruption.
-* **Domain Binding:** Restricts API access to specific origins, ensuring only your frontend can fetch data.
+🛑 **STOP** unauthorized data scraping.
+🔒 **SECURE** your content and user data.
+🚀 **BOOST** performance by blocking bad requests.
 
-PS: You'll be able to generate your secure API Key instantly upon activation.
+---
+
+### 🚀 Why Headless REST API Security is the Best Choice?
+
+We didn't just build a security plugin; we built a **Headless Firewall**. Unlike generic security plugins that only look for malware, we control the flow of data itself.
+
+* **🛡️ Strict Security Mode (Whitelist):** The only plugin that blocks 100% of API requests by default. You choose what to unlock.
+* **↩️ Smart Headless Redirects:** Automatically redirects visitors who find your backend URL (e.g., `api.yoursite.com`) directly to your frontend (e.g., `www.yoursite.com`).
+* **🔑 API Key Authentication:** Secure your mobile apps and frontend fetch requests with a simple, secure `X-API-KEY` header.
+* **⚡ Blazing Fast Performance:** Runs before WordPress loads most core files, ensuring blocked requests don't slow down your server.
+* **🕵️ Admin Bypass:** Smart detection allows logged-in Administrators to use the WP Dashboard and Gutenberg Block Editor without interruption.
+
+---
+
+### 🔥 Features at a Glance
+
+* **1-Click Lockdown:** Instantly secure your entire REST API.
+* **Route-Level Control:** Enable specific endpoints like `/wp/v2/posts` while keeping `/wp/v2/users` hidden.
+* **Smart Grouping:** Automatically groups routes (Core vs. Plugins) for easy management.
+* **Domain Binding:** Restrict API access to *only* your frontend domain.
+* **Plugin Compatibility:** Works perfectly with Rank Math, WooCommerce, Contact Form 7, and ACF.
+* **Developer Friendly:** Clean code, native WordPress hooks, and zero bloat.
+
+---
+
+### 💡 Perfect For:
+
+* **Headless Sites:** Next.js, Gatsby, Frontity, Faust.js, Nuxt.js.
+* **Mobile Applications:** React Native, Flutter, iOS, Android.
+* **Static Sites:** Jamstack architectures needing secure dynamic data.
+* **Intranets:** Private internal dashboards.
+
+---
+
+### 🏗️ How It Works
+
+1.  **Activate** the plugin.
+2.  **Turn On** the "Master Switch" to block all public access.
+3.  **Whitelist** only the routes your frontend needs (e.g., `/wp/v2/posts`).
+4.  **Add** your API Key to your frontend environment variables.
+5.  **Relax!** Your API is now invisible to the rest of the world.
+
+> "Security is not an option; it's a necessity. Headless REST API Security makes it simple."
+
+---
+
+### ❤️ Love Headless REST API Security?
+
+If this plugin helped you secure your site, please **rate us 5 stars** on WordPress.org! It helps us keep updates coming.
 
 == Installation ==
 
@@ -57,7 +102,7 @@ No. It adds a security firewall layer *before* WordPress processes the request. 
 = Will this break the Block Editor (Gutenberg)? =
 No. The plugin includes an "Admin Bypass" feature. If you are logged in as an Administrator or Editor, the API restrictions are skipped so you can work normally.
 
-= Can I use this with RankMath, WooCommerce, or CF7? =
+= Can I use this with Rank Math, WooCommerce, or CF7? =
 Yes. The plugin automatically detects routes registered by other plugins. You can see them in the list and whitelist them (e.g., `/wc/v3` or `/contact-form-7/v1`).
 
 = What happens if I lose my API Key? =
@@ -71,10 +116,10 @@ You can view or generate a new key anytime from the settings page.
 == Changelog ==
 
 = 2.0 =
-* **New:** Added Headless Redirect to main domain function.
-* **New:** Introduced Strict Security (Whitelist) mode.
-* **New:** Added Smart Grouping for cleaner route management.
-* **Improvement:** Added Admin Bypass for logged-in users.
+* New: Added Headless Redirect to main domain function.
+* New: Introduced Strict Security (Whitelist) mode.
+* New: Added Smart Grouping for cleaner route management.
+* Improvement: Added Admin Bypass for logged-in users.
 
 = 1.1.0 =
 * Added dynamic REST route detection.
@@ -94,3 +139,5 @@ Major update introducing Strict Whitelist Mode and Headless Redirects. Please re
 Author: Md. Rakib Ullah
 Email: rakib417@gmail.com
 Linkedin: https://www.linkedin.com/in/rakib417/
+
+```
