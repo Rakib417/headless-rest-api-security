@@ -3,6 +3,7 @@ Contributors: rakib417
 Tags: headless, rest api, security, authentication
 Requires at least: 5.8
 Tested up to: 6.9
+Requires PHP: 7.1
 Stable tag: 2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,11 +18,16 @@ If you are running a Headless WordPress site (Next.js, Gatsby, Nuxt, or Mobile A
 
 **Headless REST API Security** solves this instantly. It is the **FIRST** and **ONLY** plugin designed specifically to lock down Headless architectures with a "Strict Whitelist" model. We give you the power to disable ALL API routes by default and only allow exactly what your app needs.
 
+### 📺 Video Tutorial: How to Configure
+Watch this step-by-step guide to see how to lock down your API in under 2 minutes:
+
+https://www.youtube.com/watch?v=h4l3c5GRxd4
+
+---
+
 🛑 **STOP** unauthorized data scraping.
 🔒 **SECURE** your content and user data.
 🚀 **BOOST** performance by blocking bad requests.
-
----
 
 ### 🚀 Why Headless REST API Security is the Best Choice?
 
@@ -139,5 +145,3 @@ Major update introducing Strict Whitelist Mode and Headless Redirects. Please re
 Author: Md. Rakib Ullah
 Email: rakib417@gmail.com
 Linkedin: https://www.linkedin.com/in/rakib417/
-
-```
